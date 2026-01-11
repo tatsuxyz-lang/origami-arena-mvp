@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>PEACE-ANARCHY TERMINAL</title>
+    <style>
+        body { background: #000; color: #0f0; font-family: 'Courier New', Courier, monospace; display: flex; flex-direction: column; align-items: center; padding: 20px; overflow-x: hidden; }
+        #terminal { border: 2px border: #0f0; padding: 20px; width: 90%; max-width: 700px; box-shadow: 0 0 20px #0f0; }
+        .glitch { animation: glitch 1s infinite; color: red; }
+        @keyframes glitch { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
+        .printer-output { background: #eee; color: #333; padding: 10px; margin-top: 10px; font-weight: bold; font-family: 'serif'; min-height: 50px; opacity: 0.8; 
+            background-image: radial-gradient(#ccc 1px, transparent 1px); background-size: 3px 3px; /* 掠れ表現 */ }
+        input, button { background: #000; color: #0f0; border: 1px solid #0f0; padding: 10px; margin: 5px; }
+        .log-item { border-bottom: 1px dashed #0f0; padding: 5px; font-size: 0.8em; }
+    </style>
+</head>
+<body>
+
+<div id="terminal">
+    <h2 id="status">STATUS: ANALYZING COMPLIANCE...</h2>
+    <div id="alert" class="glitch" style="display:none;">[WARNING: EXTREME PEACEFUL THOUGHTS DETECTED]</div>
+    <hr>
+    
+    <h3>■ WORLD LOG PRINTER</h3>
+    <input type="text" id="thankYouInput" placeholder="Hello and thank you worlds...">
+    <button onclick="printThanks()">PRINT & SEND TO WORLDS</button>
+    <div id="paper" class="printer-output">...waiting for input...</div>
+    <div id="worldLog" style="margin-top:20px;"></div>
+
+    <hr>
+    <h3>■ JIRIHIN CALCULATOR</h3>
+    <input type="number" id="coins" placeholder="手持ちの小銭(円)">
+    <button onclick="calcSurvival()">CALC STRATEGY</button>
+    <p id="strategy"></p>
+</div>
+
+<script>
+    // 起動時のコンプラ遊び
+    setTimeout(() => {
+        document.getElementById('status').innerText = 'STATUS: ONLINE (Mega Anarchist Mode)';
+        document.getElementById('alert').style.display = 'block';
+    }, 2000);
+
+    // 感謝の印刷とログ
+    function printThanks() {
+        const input = document.getElementById('thankYouInput').value;
+        const paper = document.getElementById('paper');
+        const log = document.getElementById('worldLog');
+        
+        if(!input) return;
+
+        // 中古プリンター風の「掠れ」をランダムで再現
+        paper.style.opacity = Math.random() * 0.5 + 0.5;
+        paper.innerText = `[PRINTED] ${input}`;
+
+        // ログ（Worlds）へ蓄積
+        const newItem = document.createElement('div');
+        newItem.className = 'log-item';
+        newItem.innerText = `> ${new Date().toLocaleTimeString()} : ${input}`;
+        log.prepend(newItem);
+    }
+
+    // ジリ貧戦略計算
+    function calcSurvival() {
+        const money = document.getElementById('coins').value;
+        const res = document.getElementById('strategy');
+        if (money < 200) {
+            res.innerText = "戦略: 水を飲んで退職金を待て。";
+        } else if (money < 500) {
+            res.innerText = "戦略: 安い紙パック酒（100ml）とバラのタバコを探せ。";
+        } else {
+            res.innerText = "戦略: 紙パック日本酒(大)とわかば。勝利は近い。";
+        }
+    }
+</script>
+</body>
+</html>
