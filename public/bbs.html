@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Origami Therapy Association | ZOOM Chat Lounge</title>
+    <style>
+        /* --- 全体：温かく、大きな文字 --- */
+        body { 
+            background: #fdfcf5; 
+            color: #333; 
+            font-family: sans-serif; 
+            padding: 20px; 
+            margin: 0;
+            font-size: 24px; 
+        }
+        .container { max-width: 800px; margin: 0 auto; padding-bottom: 60px; }
+
+        /* --- ヘッダー：アバター配置 --- */
+        #header-area { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 30px; 
+            border-bottom: 3px solid #f6b; 
+            padding-bottom: 20px;
+        }
+        h1 { font-size: 1.4rem; margin: 0; color: #d46; text-align: center; line-height: 1.2; }
+        .header-avatar { 
+            width: 80px; height: 80px; 
+            border-radius: 50%; 
+            background: #eee; 
+            object-fit: cover;
+            border: 3px solid #fff;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        /* --- 入力エリア：巨大化 --- */
+        #input-area { 
+            background: #fff; 
+            padding: 25px; 
+            border-radius: 20px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            margin-bottom: 30px; 
+        }
+        .input-label { font-size: 0.9rem; color: #888; margin-bottom: 10px; font-weight: bold; }
+        
+        input[type="text"] { 
+            width: 100%; 
+            padding: 15px; 
+            font-size: 24px; 
+            margin-bottom: 15px; 
+            border: 2px solid #ddd; 
+            border-radius: 10px;
+            box-sizing: border-box;
+        }
+
+        .btn-group { display: flex; gap: 10px; }
+        button { 
+            flex: 1; padding: 15px; font-size: 22px; font-weight: bold; 
+            border: none; border-radius: 10px; cursor: pointer; transition: 0.2s;
+        }
+        #btn-send { background: #d46; color: white; }
+        #btn-upload { background: #eee; color: #555; font-size: 18px; }
+
+        /* --- ログ表示 --- */
+        .post { 
+            background: #fff; margin-bottom: 20px; border-radius: 15px;
+            padding: 20px; border-left: 8px solid #f9c; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+        }
+        .latest-time { color: #d46; font-weight: bold; font-size: 0.8rem; margin-bottom: 8px; }
+        .handle { color: #f6b; font-weight: bold; font-size: 1.1rem; }
+        .msg { font-size: 1.1rem; display: block; margin-top: 5px; }
+        
+        /* 投稿画像のリサイズ表示 */
+        .post-img { 
+            max-width: 100%; max-height: 500px; 
+            margin-top: 15px; border-radius: 8px; display: block;
+        }
+
+        #disclaimer { text-align: center; color: #999; font-size: 0.8rem; margin-top: 40px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="header-area">
+        <img src="https://github.com/tatsuxyz-lang/origami-arena-mvp/blob/main/house.jpg?raw=true" alt="Host" class="header-avatar">
+        <h1>Origami Therapy Association<br>ZOOM Chat Lounge</h1>
+        <img src="https://github.com/tatsuxyz-lang/origami-arena-mvp/blob/main/toshi.png?raw=true" alt="Host" class="header-avatar">
+    </div>
+
+    <div id="input-area">
+        <div class="input-label">>> NO LOGIN REQUIRED. SAY HELLO!</div>
+        <input type="text" id="handle" placeholder="Your Name" maxlength="15">
+        <input type="text" id="message" placeholder="Type a message...">
+        
+        <input type="file" id="file-input" accept="image/*" style="display:none">
+        
+        <div class="btn-group">
+            <button type="button" id="btn-upload" onclick="document.getElementById('file-input').click()">Photo</button>
+            <button type="button" id="btn-send" onclick="postData()">POST</button>
+        </div>
+    </div>
+
+    <div id="log-display"></div>
+
+    <div id="disclaimer">
+        写真は非営利でのみ使わせてもらいます。<br>
+        Photos will be used for non-profit purposes only.
+    </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+<script>
+    // 安田さんのFirebase設定（履歴から補完）
+    const firebaseConfig = {
+        apiKey: "AIzaSyDlHk4BPEAog7C0JQ2hNc1Lnh_9gsO_jBE",
+        authDomain: "ota-works.firebaseapp.com",
+        databaseURL: "https://ota-works-default-rtdb.asia-southeast1.firebasedatabase.app/",
+        projectId: "ota-works",
+        storageBucket: "ota-works.firebasestorage.app",
+        messagingSenderId: "971694627672",
+        appId: "1:971694627672:web:dd4172a41f9a05bd34632d"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+    const logRef = database.ref('origami_session_logs');
+
+    let base64Image = null;
+
+    // 画像が選ばれたら、その場で640pxに縮小してBase64化する
+    document.getElementById('file-input').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+                const maxSide = 640;
+
+                if (width > height) {
+                    if (width > maxSide) { height *= maxSide / width; width = maxSide; }
+                } else {
+                    if (height > maxSide) { width *= maxSide / height; height = maxSide; }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                // JPEG形式、画質0.7で文字列化（これで大幅に軽くなる）
+                base64Image = canvas.toDataURL('image/jpeg', 0.7);
+                document.getElementById('btn-upload').innerText = "Photo OK!";
+                document.getElementById('btn-upload').style.background = "#ffc1e3";
+            };
+            img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+
+    function postData() {
+        const handle = document.getElementById('handle').value || 'Anonymous';
+        const msg = document.getElementById('message').value;
+        if (!msg && !base64Image) return;
+
+        logRef.push({
+            handle: handle,
+            message: msg,
+            image: base64Image, // 縮小済み画像を文字列として送信
+            timestamp: firebase.database.ServerValue.TIMESTAMP
+        });
+
+        // リセット
+        document.getElementById('message').value = '';
+        document.getElementById('file-input').value = '';
+        document.getElementById('btn-upload').innerText = "Photo";
+        document.getElementById('btn-upload').style.background = "#eee";
+        base64Image = null;
+    }
+
+    logRef.orderByChild('timestamp').on('value', (snap) => {
+        const display = document.getElementById('log-display');
+        display.innerHTML = '';
+        let posts = [];
+        snap.forEach(child => { posts.unshift(child.val()); });
+
+        posts.forEach((data, index) => {
+            const div = document.createElement('div');
+            div.className = 'post';
+            let timeStr = (index === 0) ? `<div class="latest-time">[ NEWEST: ${new Date(data.timestamp).toLocaleTimeString()} ]</div>` : '';
+            let imgTag = data.image ? `<img src="${data.image}" class="post-img">` : '';
+
+            div.innerHTML = `${timeStr}<span class="handle">@${data.handle}</span><span class="msg">${data.message}</span>${imgTag}`;
+            display.appendChild(div);
+        });
+    });
+</script>
+</body>
+</html>
